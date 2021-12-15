@@ -1,7 +1,18 @@
 package gqlclient
 
+import (
+	"encoding/json"
+)
+
+type ErrorLocation struct {
+	Line, Column int
+}
+
 type Error struct {
-	Message string
+	Message    string
+	Locations  []ErrorLocation
+	Path       []interface{}
+	Extensions json.RawMessage
 }
 
 func (err *Error) Error() string {
