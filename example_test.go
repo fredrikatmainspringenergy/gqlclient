@@ -59,9 +59,7 @@ func ExampleClient_Execute_upload() {
 	var c *gqlclient.Client
 
 	op := gqlclient.NewOperation(`mutation ($file: Upload!) {
-		user(name: $name) {
-			age
-		}
+		send(file: $file)
 	}`)
 
 	op.Var("file", gqlclient.Upload{
@@ -70,12 +68,7 @@ func ExampleClient_Execute_upload() {
 		Body:     strings.NewReader("Hello, 世界"),
 	})
 
-	var data struct {
-		User struct {
-			Age int
-		}
-	}
-	if err := c.Execute(ctx, op, &data); err != nil {
+	if err := c.Execute(ctx, op, nil); err != nil {
 		log.Fatal(err)
 	}
 
