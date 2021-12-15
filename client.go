@@ -9,14 +9,19 @@ import (
 	"net/http"
 )
 
-// Client is a GraphQL client.
+// Client is a GraphQL HTTP client.
 type Client struct {
 	endpoint string
 	http     *http.Client
 }
 
 // New creates a new GraphQL client with the specified endpoint.
+//
+// If hc is nil, http.DefaultClient is used.
 func New(endpoint string, hc *http.Client) *Client {
+	if hc == nil {
+		hc = http.DefaultClient
+	}
 	return &Client{
 		endpoint: endpoint,
 		http:     hc,
