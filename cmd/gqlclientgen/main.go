@@ -61,6 +61,46 @@ func genType(schema *ast.Schema, t *ast.Type) *jen.Statement {
 	}
 }
 
+func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
+	switch def.Kind {
+	case ast.Scalar:
+		switch def.Name {
+		case "Time", "Map", "Upload", "Any":
+			// Convenience types
+			return nil
+		default:
+			return jen.Type().Id(def.Name).String()
+		}
+	case ast.Enum:
+		var defs []jen.Code
+		for _, val := range def.EnumValues {
+			nameWords := strings.Split(strings.ToLower(val.Name), "_")
+			for i := range nameWords {
+				nameWords[i] = strings.Title(nameWords[i])
+			}
+			name := strings.Join(nameWords, "")
+			defs = append(defs, jen.Id(def.Name+name).Id(def.Name).Op("=").Lit(val.Name))
+		}
+		return jen.Add(
+			jen.Type().Id(def.Name).String(),
+			jen.Line(),
+			jen.Const().Defs(defs...),
+		)
+	case ast.Object, ast.Interface:
+		var fields []jen.Code
+		for _, field := range def.Fields {
+			if field.Name == "__schema" || field.Name == "__type" {
+				continue // TODO
+			}
+			name := strings.Title(field.Name)
+			fields = append(fields, jen.Id(name).Add(genType(schema, field.Type)))
+		}
+		return jen.Type().Id(def.Name).Struct(fields...)
+	default:
+		panic(fmt.Sprintf("unsupported definition kind: %s", def.Kind))
+	}
+}
+
 func main() {
 	if len(os.Args) != 4 {
 		fmt.Println(usage)
@@ -95,39 +135,9 @@ func main() {
 	sort.Strings(typeNames)
 
 	for _, name := range typeNames {
-		def := schema.Types[name]
-		switch def.Kind {
-		case ast.Scalar:
-			switch def.Name {
-			case "Time", "Map", "Upload", "Any":
-				// Convenience types
-			default:
-				f.Type().Id(def.Name).String()
-			}
-		case ast.Enum:
-			f.Type().Id(def.Name).String()
-			var defs []jen.Code
-			for _, val := range def.EnumValues {
-				nameWords := strings.Split(strings.ToLower(val.Name), "_")
-				for i := range nameWords {
-					nameWords[i] = strings.Title(nameWords[i])
-				}
-				name := strings.Join(nameWords, "")
-				defs = append(defs, jen.Id(def.Name+name).Id(def.Name).Op("=").Lit(val.Name))
-			}
-			f.Const().Defs(defs...)
-		case ast.Object, ast.Interface:
-			var fields []jen.Code
-			for _, field := range def.Fields {
-				if field.Name == "__schema" || field.Name == "__type" {
-					continue // TODO
-				}
-				name := strings.Title(field.Name)
-				fields = append(fields, jen.Id(name).Add(genType(schema, field.Type)))
-			}
-			f.Type().Id(def.Name).Struct(fields...)
-		default:
-			panic(fmt.Sprintf("unsupported definition kind: %s", def.Kind))
+		stmt := genDef(schema, schema.Types[name])
+		if stmt != nil {
+			f.Add(stmt).Line()
 		}
 	}
 
