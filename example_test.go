@@ -71,6 +71,4 @@ func ExampleClient_Execute_upload() {
 	if err := c.Execute(ctx, op, nil); err != nil {
 		log.Fatal(err)
 	}
-
-	log.Print(data)
 }
