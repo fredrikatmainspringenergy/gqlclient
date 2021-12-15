@@ -9,11 +9,13 @@ import (
 	"net/http"
 )
 
+// Client is a GraphQL client.
 type Client struct {
 	endpoint string
 	http     *http.Client
 }
 
+// New creates a new GraphQL client with the specified endpoint.
 func New(endpoint string, hc *http.Client) *Client {
 	return &Client{
 		endpoint: endpoint,
@@ -21,16 +23,23 @@ func New(endpoint string, hc *http.Client) *Client {
 	}
 }
 
+// Operation describes a GraphQL operation.
+//
+// An operation is a query with variables.
 type Operation struct {
 	query   string
 	vars    map[string]interface{}
 	uploads map[string]Upload
 }
 
+// NewOperation creates a new GraphQL operation.
 func NewOperation(query string) *Operation {
 	return &Operation{query: query}
 }
 
+// Var defines a new variable.
+//
+// If the variable is already defined, Var panics.
 func (op *Operation) Var(k string, v interface{}) {
 	if op.vars == nil {
 		op.vars = make(map[string]interface{})
@@ -63,6 +72,9 @@ func (op *Operation) Var(k string, v interface{}) {
 	}
 }
 
+// Execute sends the operation to the GraphQL server.
+//
+// The data returned by the server will be decoded into the data argument.
 func (c *Client) Execute(ctx context.Context, op *Operation, data interface{}) error {
 	reqData := struct {
 		Query string                 `json:"query"`

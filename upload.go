@@ -9,12 +9,17 @@ import (
 	"net/textproto"
 )
 
+// Upload is a file upload.
+//
+// See the GraphQL multipart request specification for details:
+// https://github.com/jaydenseric/graphql-multipart-request-spec
 type Upload struct {
 	Filename string
 	MIMEType string
 	Body     io.Reader
 }
 
+// MarshalJSON implements json.Marshaler.
 func (Upload) MarshalJSON() ([]byte, error) {
 	return json.Marshal(nil)
 }
