@@ -115,7 +115,7 @@ func main() {
 				defs = append(defs, jen.Id(def.Name+name).Id(def.Name).Op("=").Lit(val.Name))
 			}
 			f.Const().Defs(defs...)
-		case ast.Object:
+		case ast.Object, ast.Interface:
 			var fields []jen.Code
 			for _, field := range def.Fields {
 				if field.Name == "__schema" || field.Name == "__type" {
@@ -125,8 +125,6 @@ func main() {
 				fields = append(fields, jen.Id(name).Add(genType(schema, field.Type)))
 			}
 			f.Type().Id(def.Name).Struct(fields...)
-		case ast.Interface:
-			f.Type().Id(def.Name).Interface() // TODO
 		default:
 			panic(fmt.Sprintf("unsupported definition kind: %s", def.Kind))
 		}
