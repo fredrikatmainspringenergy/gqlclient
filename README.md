@@ -96,8 +96,14 @@ if err != nil {
 log.Print(train)
 ```
 
+## Contributing
+
+Send patches on the [mailing list]. Discuss in [#emersion on Libera Chat][IRC channel].
+
 ## License
 
 MIT
 
 [GoDoc examples]: https://godocs.io/git.sr.ht/~emersion/gqlclient#example-Client-Execute
+[mailing list]: https://lists.sr.ht/~emersion/public-inbox
+[IRC channel]: ircs://irc.libera.chat/#emersion
