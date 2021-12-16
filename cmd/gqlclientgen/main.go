@@ -118,7 +118,12 @@ func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
 				continue // TODO
 			}
 			name := strings.Title(field.Name)
-			fields = append(fields, jen.Id(name).Add(genType(schema, field.Type)))
+			jsonTag := field.Name
+			if !field.Type.NonNull {
+				jsonTag += ",omitempty"
+			}
+			tag := jen.Tag(map[string]string{"json": jsonTag})
+			fields = append(fields, jen.Id(name).Add(genType(schema, field.Type)).Add(tag))
 		}
 		return jen.Type().Id(def.Name).Struct(fields...)
 	default:
