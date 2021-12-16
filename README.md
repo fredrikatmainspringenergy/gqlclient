@@ -1,6 +1,7 @@
 # gqlclient
 
 [![godocs.io](https://godocs.io/git.sr.ht/~emersion/gqlclient?status.svg)](https://godocs.io/git.sr.ht/~emersion/gqlclient)
+[![builds.sr.ht status](https://builds.sr.ht/~emersion/gqlclient/commits.svg)](https://builds.sr.ht/~emersion/gqlclient/commits?)
 
 A GraphQL client and code generator for Go.
 
