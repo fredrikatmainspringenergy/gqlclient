@@ -7,7 +7,7 @@ A GraphQL client and code generator for Go.
 ## Usage
 
 gqlclient can be used as a thin GraphQL client, and can be augmented with code
-generation. See the GoDoc examples for direct usage.
+generation. See the [GoDoc examples] for direct usage.
 
 ### GraphQL schema code generation
 
@@ -99,3 +99,5 @@ log.Print(train)
 ## License
 
 MIT
+
+[GoDoc examples]: https://godocs.io/git.sr.ht/~emersion/gqlclient#example-Client-Execute
