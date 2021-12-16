@@ -26,7 +26,7 @@ type Train {
 and the following `gqlclientgen` invocation:
 
 ```sh
-gqlclientgen -s rail.graphqls -o rail.go -n rail
+gqlclientgen -s schema.graphqls -o gql.go -n rail
 ```
 
 will generate the following Go type:
@@ -57,6 +57,43 @@ var data struct {
 if err := c.Execute(ctx, op, &data); err != nil {
 	log.Fatal(err)
 }
+log.Print(data.Train)
+```
+
+### GraphQL query code generation
+
+The code generator can also parse a GraphQL query document and generate Go
+functions. For instance, the following query document:
+
+```graphql
+query fetchTrain($name: String!) {
+	train(name: $name) {
+		maxSpeed
+		linesServed
+	}
+}
+```
+
+and the following `gqlclientgen` invocation:
+
+```sh
+gqlclientgen -s schema.graphqls -q queries.graphql -o gql.go -n rail
+```
+
+will generate the following function:
+
+```go
+func FetchTrain(client *gqlclient.Client, ctx context.Context, name string) (Train, error)
+```
+
+which can then be used to execute the query:
+
+```go
+train, err := rail.FetchTrain(c, ctx, "Shinkansen E5")
+if err != nil {
+	log.Fatal(err)
+}
+log.Print(train)
 ```
 
 ## License
