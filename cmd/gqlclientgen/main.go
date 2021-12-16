@@ -111,7 +111,7 @@ func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
 			jen.Line(),
 			jen.Const().Defs(defs...),
 		)
-	case ast.Object, ast.Interface:
+	case ast.Object, ast.Interface, ast.InputObject:
 		var fields []jen.Code
 		for _, field := range def.Fields {
 			if field.Name == "__schema" || field.Name == "__type" {
