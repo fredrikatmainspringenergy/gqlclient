@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -12,7 +13,27 @@ import (
 	"github.com/vektah/gqlparser/v2/ast"
 )
 
-const usage = `usage: gqlclientgen <schema> <package> <output>`
+const usage = `usage: gqlclientgen -s <schema> -o <output> [options...]
+
+Generate Go types and helpers for the specified GraphQL schema.
+
+Options:
+
+  -s <schema>   GraphQL schema, can be specified multiple times. Required.
+  -o <output>   Output filename for generated Go code. Required.
+  -n <package>  Go package name, defaults to "main".
+`
+
+type stringSliceFlag []string
+
+func (v *stringSliceFlag) String() string {
+	return fmt.Sprint([]string(*v))
+}
+
+func (v *stringSliceFlag) Set(s string) error {
+	*v = append(*v, s)
+	return nil
+}
 
 func genType(schema *ast.Schema, t *ast.Type) *jen.Statement {
 	if t.Elem != nil {
@@ -102,21 +123,31 @@ func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
 }
 
 func main() {
-	if len(os.Args) != 4 {
+	var schemaFilenames []string
+	var pkgName, outputFilename string
+	flag.Var((*stringSliceFlag)(&schemaFilenames), "s", "schema filename")
+	flag.StringVar(&pkgName, "n", "main", "package name")
+	flag.StringVar(&outputFilename, "o", "", "output filename")
+	flag.Usage = func() {
 		fmt.Println(usage)
+	}
+	flag.Parse()
+
+	if len(schemaFilenames) == 0 || outputFilename == "" || len(flag.Args()) > 0 {
+		flag.Usage()
 		os.Exit(1)
 	}
-	schemaPath := os.Args[1]
-	pkgName := os.Args[2]
-	outputPath := os.Args[3]
 
-	b, err := os.ReadFile(schemaPath)
-	if err != nil {
-		log.Fatalf("failed to load schema: %v", err)
+	var sources []*ast.Source
+	for _, filename := range schemaFilenames {
+		b, err := os.ReadFile(filename)
+		if err != nil {
+			log.Fatalf("failed to load schema %q: %v", filename, err)
+		}
+		sources = append(sources, &ast.Source{Name: filename, Input: string(b)})
 	}
 
-	src := ast.Source{Name: schemaPath, Input: string(b)}
-	schema, gqlErr := gqlparser.LoadSchema(&src)
+	schema, gqlErr := gqlparser.LoadSchema(sources...)
 	if gqlErr != nil {
 		log.Fatalf("failed to parse schema: %v", gqlErr)
 	}
@@ -141,7 +172,7 @@ func main() {
 		}
 	}
 
-	if err := f.Save(outputPath); err != nil {
+	if err := f.Save(outputFilename); err != nil {
 		log.Fatalf("failed to save output file: %v", err)
 	}
 }
