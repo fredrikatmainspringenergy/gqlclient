@@ -126,6 +126,56 @@ func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
 			fields = append(fields, jen.Id(name).Add(genType(schema, field.Type)).Add(tag))
 		}
 		return jen.Type().Id(def.Name).Struct(fields...)
+	case ast.Union:
+		var stmts []jen.Code
+		stmts = append(stmts,
+			jen.Type().Id(def.Name).Struct(
+				jen.Comment(strings.Join(def.Types, " | ")),
+				jen.Id("Value").Interface(),
+			),
+			jen.Line(),
+		)
+
+		var cases []jen.Code
+		for _, name := range def.Types {
+			cases = append(cases, jen.Case(jen.Lit(name)).Block(
+				jen.Id("union").Dot("Value").Op("=").New(jen.Id(name)),
+			))
+		}
+
+		errPrefix := fmt.Sprintf("gqlclient: union %v: ", def.Name)
+		cases = append(cases,
+			jen.Case(jen.Lit("")).Block(
+				jen.Return(jen.Qual("fmt", "Errorf").Call(jen.Lit(errPrefix+"missing __typename field"))),
+			),
+			jen.Default().Block(
+				jen.Return(jen.Qual("fmt", "Errorf").Call(jen.Lit(errPrefix+"unknown __typename %q"), jen.Id("data").Dot("Type"))),
+			),
+		)
+
+		stmts = append(stmts, jen.Func().Params(
+			jen.Id("union").Op("*").Id(def.Name),
+		).Id("UnmarshalJSON").Params(
+			jen.Id("b").Index().Byte(),
+		).Params(
+			jen.Id("error"),
+		).Block(
+			jen.Var().Id("data").Struct(
+				jen.Id("Type").String().Tag(map[string]string{"json": "__typename"}),
+			),
+			jen.Id("err").Op(":=").Qual("encoding/json", "Unmarshal").Call(
+				jen.Id("b"),
+				jen.Op("&").Id("data"),
+			),
+			jen.If(jen.Id("err").Op("!=").Nil()).Block(jen.Return(jen.Id("err"))),
+			jen.Switch(jen.Id("data").Dot("Type")).Block(cases...),
+			jen.Return(jen.Qual("encoding/json", "Unmarshal").Call(
+				jen.Id("b"),
+				jen.Id("union").Dot("Value"),
+			)),
+		))
+
+		return jen.Add(stmts...)
 	default:
 		panic(fmt.Sprintf("unsupported definition kind: %s", def.Kind))
 	}
