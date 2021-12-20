@@ -39,51 +39,66 @@ func (v *stringSliceFlag) Set(s string) error {
 
 const gqlclient = "git.sr.ht/~emersion/gqlclient"
 
-func genType(schema *ast.Schema, t *ast.Type) *jen.Statement {
-	if t.Elem != nil {
-		return jen.Index().Add(genType(schema, t.Elem))
+func genType(schema *ast.Schema, t *ast.Type) jen.Code {
+	var prefix []jen.Code
+
+	toplevel := true
+	for t.Elem != nil {
+		prefix = append(prefix, jen.Index())
+		toplevel = false
+		t = t.Elem
 	}
 
-	def := schema.Types[t.NamedType]
-
-	if !t.NonNull {
-		switch def.Name {
-		case "ID", "Time", "Map", "Any":
-			// These don't need a pointer
-		default:
-			cpy := *t
-			cpy.NonNull = true
-			return jen.Op("*").Add(genType(schema, &cpy))
-		}
+	def, ok := schema.Types[t.NamedType]
+	if !ok {
+		panic(fmt.Sprintf("unknown type name %q", t.NamedType))
 	}
 
+	var gen jen.Code
 	switch def.Name {
 	// Standard types
 	case "Int":
-		return jen.Int32()
+		gen = jen.Int32()
 	case "Float":
-		return jen.Float64()
+		gen = jen.Float64()
 	case "String":
-		return jen.String()
+		gen = jen.String()
 	case "Boolean":
-		return jen.Bool()
+		gen = jen.Bool()
 	case "ID":
-		return jen.String()
+		gen = jen.String()
 	// Convenience types
 	case "Time":
-		return jen.Qual("time", "Time")
+		gen = jen.Qual("time", "Time")
 	case "Map":
-		return jen.Map(jen.String()).Interface()
+		gen = jen.Map(jen.String()).Interface()
 	case "Upload":
-		return jen.Qual(gqlclient, "Upload")
+		gen = jen.Qual(gqlclient, "Upload")
 	case "Any":
-		return jen.Interface()
+		gen = jen.Interface()
 	default:
 		if def.BuiltIn {
 			panic(fmt.Sprintf("unsupported built-in type: %s", def.Name))
 		}
-		return jen.Id(def.Name)
+		gen = jen.Id(def.Name)
 	}
+
+	if !t.NonNull {
+		switch def.Name {
+		case "ID", "Time", "Map", "Any":
+			// These don't need a pointer, they have a recognizable zero value
+		default:
+			prefix = append(prefix, jen.Op("*"))
+		}
+	} else if toplevel {
+		switch def.Kind {
+		case ast.Object, ast.Interface:
+			// Required to deal with recursive types
+			prefix = append(prefix, jen.Op("*"))
+		}
+	}
+
+	return jen.Add(prefix...).Add(gen)
 }
 
 func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
