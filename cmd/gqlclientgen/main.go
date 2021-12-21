@@ -39,6 +39,13 @@ func (v *stringSliceFlag) Set(s string) error {
 
 const gqlclient = "git.sr.ht/~emersion/gqlclient"
 
+func genDescription(s string) jen.Code {
+	if s == "" {
+		return jen.Null()
+	}
+	return jen.Comment(s).Line()
+}
+
 func genType(schema *ast.Schema, t *ast.Type) jen.Code {
 	var prefix []jen.Code
 
@@ -119,7 +126,10 @@ func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
 				nameWords[i] = strings.Title(nameWords[i])
 			}
 			name := strings.Join(nameWords, "")
-			defs = append(defs, jen.Id(def.Name+name).Id(def.Name).Op("=").Lit(val.Name))
+			desc := genDescription(val.Description)
+			defs = append(defs,
+				jen.Add(desc).Id(def.Name+name).Id(def.Name).Op("=").Lit(val.Name),
+			)
 		}
 		return jen.Add(
 			jen.Type().Id(def.Name).String(),
@@ -138,7 +148,10 @@ func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
 				jsonTag += ",omitempty"
 			}
 			tag := jen.Tag(map[string]string{"json": jsonTag})
-			fields = append(fields, jen.Id(name).Add(genType(schema, field.Type)).Add(tag))
+			desc := genDescription(field.Description)
+			fields = append(fields,
+				jen.Add(desc).Id(name).Add(genType(schema, field.Type)).Add(tag),
+			)
 		}
 		return jen.Type().Id(def.Name).Struct(fields...)
 	case ast.Union:
@@ -311,9 +324,10 @@ func main() {
 	sort.Strings(typeNames)
 
 	for _, name := range typeNames {
-		stmt := genDef(schema, schema.Types[name])
+		def := schema.Types[name]
+		stmt := genDef(schema, def)
 		if stmt != nil {
-			f.Add(stmt).Line()
+			f.Add(genDescription(def.Description), stmt).Line()
 		}
 	}
 
