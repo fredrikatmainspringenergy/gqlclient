@@ -210,10 +210,34 @@ func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
 	}
 }
 
+func collectFragments(frags map[*ast.FragmentDefinition]struct{}, selSet ast.SelectionSet) {
+	for _, sel := range selSet {
+		switch sel := sel.(type) {
+		case *ast.Field:
+			collectFragments(frags, sel.SelectionSet)
+		case *ast.FragmentSpread:
+			frags[sel.Definition] = struct{}{}
+		case *ast.InlineFragment:
+			collectFragments(frags, sel.SelectionSet)
+		default:
+			panic(fmt.Sprintf("unsupported selection type: %T", sel))
+		}
+	}
+}
+
 func genOp(schema *ast.Schema, op *ast.OperationDefinition) *jen.Statement {
+	frags := make(map[*ast.FragmentDefinition]struct{})
+	collectFragments(frags, op.SelectionSet)
+
+	var fragList ast.FragmentDefinitionList
+	for frag := range frags {
+		fragList = append(fragList, frag)
+	}
+
 	var query ast.QueryDocument
 	query.Operations = ast.OperationList{op}
-	// TODO: add fragments
+	query.Fragments = fragList
+
 	var sb strings.Builder
 	formatter.NewFormatter(&sb).FormatQueryDocument(&query)
 	queryStr := sb.String()
