@@ -43,6 +43,7 @@ func genDescription(s string) jen.Code {
 	if s == "" {
 		return jen.Null()
 	}
+	s = "// " + strings.ReplaceAll(s, "\n", "\n// ")
 	return jen.Comment(s).Line()
 }
 
@@ -212,6 +213,7 @@ func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
 func genOp(schema *ast.Schema, op *ast.OperationDefinition) *jen.Statement {
 	var query ast.QueryDocument
 	query.Operations = ast.OperationList{op}
+	// TODO: add fragments
 	var sb strings.Builder
 	formatter.NewFormatter(&sb).FormatQueryDocument(&query)
 	queryStr := sb.String()
