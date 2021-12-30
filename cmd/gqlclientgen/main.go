@@ -214,6 +214,9 @@ func collectFragments(frags map[*ast.FragmentDefinition]struct{}, selSet ast.Sel
 	for _, sel := range selSet {
 		switch sel := sel.(type) {
 		case *ast.Field:
+			if sel.Name != sel.Alias {
+				panic(fmt.Sprintf("field aliases aren't supported"))
+			}
 			collectFragments(frags, sel.SelectionSet)
 		case *ast.FragmentSpread:
 			frags[sel.Definition] = struct{}{}
@@ -261,9 +264,6 @@ func genOp(schema *ast.Schema, op *ast.OperationDefinition) *jen.Statement {
 		field, ok := sel.(*ast.Field)
 		if !ok {
 			panic(fmt.Sprintf("unsupported selection %T", sel))
-		}
-		if field.Name != field.Alias {
-			panic(fmt.Sprintf("field aliases aren't supported"))
 		}
 		typ := genType(schema, field.Definition.Type)
 		out = append(out, jen.Id(field.Name).Add(typ))
