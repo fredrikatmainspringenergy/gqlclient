@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -23,7 +24,7 @@ Options:
   -s <schema>   GraphQL schema, can be specified multiple times. Required.
   -q <query>    GraphQL query document, can be specified multiple times.
   -o <output>   Output filename for generated Go code. Required.
-  -n <package>  Go package name, defaults to "main".
+  -n <package>  Go package name, defaults to the dirname of the output file.
 `
 
 type stringSliceFlag []string
@@ -295,7 +296,7 @@ func main() {
 	var pkgName, outputFilename string
 	flag.Var((*stringSliceFlag)(&schemaFilenames), "s", "schema filename")
 	flag.Var((*stringSliceFlag)(&queryFilenames), "q", "query filename")
-	flag.StringVar(&pkgName, "n", "main", "package name")
+	flag.StringVar(&pkgName, "n", "", "package name")
 	flag.StringVar(&outputFilename, "o", "", "output filename")
 	flag.Usage = func() {
 		fmt.Println(usage)
@@ -305,6 +306,14 @@ func main() {
 	if len(schemaFilenames) == 0 || outputFilename == "" || len(flag.Args()) > 0 {
 		flag.Usage()
 		os.Exit(1)
+	}
+
+	if pkgName == "" {
+		abs, err := filepath.Abs(outputFilename)
+		if err != nil {
+			log.Fatalf("failed to get absolute output filename: %v", err)
+		}
+		pkgName = filepath.Base(filepath.Dir(abs))
 	}
 
 	var sources []*ast.Source
