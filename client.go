@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 )
 
@@ -120,6 +121,20 @@ func (c *Client) Execute(ctx context.Context, op *Operation, data interface{}) e
 		return fmt.Errorf("HTTP request failed: %v", err)
 	}
 	defer resp.Body.Close()
+
+	contentType = resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = "text/plain"
+	}
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return fmt.Errorf("invalid Content-Type %q: %v", contentType, err)
+	} else if mediaType != "application/json" {
+		if resp.StatusCode/100 != 2 {
+			return fmt.Errorf("HTTP server error: %v %v", resp.StatusCode, resp.Status)
+		}
+		return fmt.Errorf("invalid Content-Type %q: expected application/json", contentType)
+	}
 
 	respData := struct {
 		Data   interface{}
