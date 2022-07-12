@@ -103,7 +103,7 @@ gqlclient also supports fetching GraphQL schemas through GraphQL introspection.
 For instance, the following `glqintrospect` invocation will fetch the GraphQL
 schema of the `https://example.com/query` GraphQL endpoint:
 
-````sh
+```sh
 gqlintrospect https://example.com/query > schema.graphqls
 ```
 
