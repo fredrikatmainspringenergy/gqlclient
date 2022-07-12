@@ -299,7 +299,7 @@ func main() {
 	flag.StringVar(&pkgName, "n", "", "package name")
 	flag.StringVar(&outputFilename, "o", "", "output filename")
 	flag.Usage = func() {
-		fmt.Println(usage)
+		fmt.Print(usage)
 	}
 	flag.Parse()
 
