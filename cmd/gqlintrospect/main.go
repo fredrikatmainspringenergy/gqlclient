@@ -184,6 +184,8 @@ func typeReference(t Type) string {
 }
 
 func printDescription(desc string, prefix string) {
+	desc = strings.Replace(desc, `\`, `\\`, -1)
+	desc = strings.Replace(desc, `"`, `\"`, -1)
 	if !strings.Contains(desc, "\n") {
 		fmt.Printf("%s\"%s\"\n", prefix, desc)
 	} else {
@@ -204,7 +206,7 @@ func printType(t Type) {
 		fmt.Printf("scalar %s\n\n", *t.Name)
 	case TypeKindUnion:
 		fmt.Printf("union %s = ", *t.Name)
-		for idx, i := range t.Interfaces {
+		for idx, i := range t.PossibleTypes {
 			if idx > 0 {
 				fmt.Print(" | ")
 			}
@@ -234,7 +236,17 @@ func printType(t Type) {
 		}
 		fmt.Print("}\n\n")
 	case TypeKindObject, TypeKindInterface:
-		fmt.Printf("%s %s {\n", typeKeyword(t), *t.Name)
+		fmt.Printf("%s %s", typeKeyword(t), *t.Name)
+		if len(t.Interfaces) > 0 {
+			fmt.Printf(" implements ")
+			for idx, i := range t.Interfaces {
+				if idx > 0 {
+					fmt.Print(" & ")
+				}
+				fmt.Printf(typeReference(i))
+			}
+		}
+		fmt.Print(" {\n")
 		for _, f := range t.Fields {
 			if f.Description != nil && *f.Description != "" {
 				printDescription(*f.Description, "\t")
