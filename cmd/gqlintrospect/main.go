@@ -6,11 +6,21 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
 	"git.sr.ht/~emersion/gqlclient"
 )
+
+const usage = `usage: gqlintrospect <endpoint>
+
+Fetch the GraphQL schema of the specifed GraphQL endpoint.
+
+Options:
+
+  -H <key:value>  Set an HTTP header. Can be specified multiple times.
+`
 
 // The query used to determine type information
 const query = `
@@ -309,11 +319,15 @@ func main() {
 
 	var header []string
 	flag.Var((*stringSliceFlag)(&header), "H", "set HTTP header")
+	flag.Usage = func() {
+		fmt.Print(usage)
+	}
 	flag.Parse()
 
 	endpoint := flag.Arg(0)
 	if endpoint == "" {
-		log.Fatalf("missing endpoint")
+		flag.Usage()
+		os.Exit(1)
 	}
 
 	op := gqlclient.NewOperation(query)
