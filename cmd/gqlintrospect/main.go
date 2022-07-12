@@ -167,7 +167,7 @@ func typeReference(t Type) string {
 	}
 
 	if ofType.Name == nil {
-		return "<invalid>"
+		panic("invalid type")
 	}
 	typeName := *ofType.Name
 	if len(modifiers) > 0 {
