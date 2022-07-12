@@ -97,6 +97,16 @@ if err != nil {
 log.Print(train)
 ```
 
+### GraphQL schema introspection
+
+gqlclient also supports fetching GraphQL schemas through GraphQL introspection.
+For instance, the following `glqintrospect` invocation will fetch the GraphQL
+schema of the `https://example.com/query` GraphQL endpoint:
+
+````sh
+gqlintrospect https://example.com/query > schema.graphqls
+```
+
 ## Contributing
 
 Send patches on the [mailing list]. Discuss in [#emersion on Libera Chat][IRC channel].
