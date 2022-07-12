@@ -183,17 +183,29 @@ func typeReference(t Type) string {
 	return typeName
 }
 
+func quoteString(s string) string {
+	s = strings.Replace(s, `\`, `\\`, -1)
+	s = strings.Replace(s, `"`, `\"`, -1)
+	return fmt.Sprintf(`"%s"`, s)
+}
+
 func printDescription(desc string, prefix string) {
-	desc = strings.Replace(desc, `\`, `\\`, -1)
-	desc = strings.Replace(desc, `"`, `\"`, -1)
 	if !strings.Contains(desc, "\n") {
-		fmt.Printf("%s\"%s\"\n", prefix, desc)
+		fmt.Printf("%s%s\n", prefix, quoteString(desc))
 	} else {
+		desc = strings.Replace(desc, `"""`, `\"""`, -1)
 		fmt.Printf("%s\"\"\"\n", prefix)
 		for _, line := range strings.Split(desc, "\n") {
 			fmt.Printf("%s%s\n", prefix, line)
 		}
 		fmt.Printf("%s\"\"\"\n", prefix)
+	}
+}
+
+func printDeprecated(reason *string) {
+	fmt.Print(" @deprecated")
+	if reason != nil {
+		fmt.Printf("(reason: %s)", quoteString(*reason))
 	}
 }
 
@@ -219,7 +231,11 @@ func printType(t Type) {
 			if e.Description != nil && *e.Description != "" {
 				printDescription(*e.Description, "\t")
 			}
-			fmt.Printf("	%s\n", e.Name)
+			fmt.Printf("	%s", e.Name)
+			if e.IsDeprecated {
+				printDeprecated(e.DeprecationReason)
+			}
+			fmt.Println()
 		}
 		fmt.Print("}\n\n")
 	case TypeKindInputObject:
@@ -265,7 +281,11 @@ func printType(t Type) {
 				}
 				fmt.Print(")")
 			}
-			fmt.Printf(": %s\n", typeReference(*f.Type))
+			fmt.Printf(": %s", typeReference(*f.Type))
+			if f.IsDeprecated {
+				printDeprecated(f.DeprecationReason)
+			}
+			fmt.Println()
 		}
 		fmt.Print("}\n\n")
 	}
