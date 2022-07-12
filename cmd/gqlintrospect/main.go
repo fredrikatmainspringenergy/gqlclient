@@ -291,6 +291,18 @@ func printType(t Type) {
 	}
 }
 
+var builtInScalars = map[string]bool{
+	"Int":     true,
+	"Float":   true,
+	"String":  true,
+	"Boolean": true,
+	"ID":      true,
+}
+
+func isBuiltInType(t Type) bool {
+	return strings.HasPrefix(*t.Name, "__") || builtInScalars[*t.Name]
+}
+
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -329,7 +341,7 @@ func main() {
 	}
 
 	for _, t := range data.Schema.Types {
-		if t.Name != nil && strings.HasPrefix(*t.Name, "__") {
+		if isBuiltInType(t) {
 			continue
 		}
 		printType(t)
