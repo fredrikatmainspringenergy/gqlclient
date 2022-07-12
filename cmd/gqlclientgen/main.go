@@ -25,6 +25,7 @@ Options:
   -q <query>    GraphQL query document, can be specified multiple times.
   -o <output>   Output filename for generated Go code. Required.
   -n <package>  Go package name, defaults to the dirname of the output file.
+  -d            Omit deprecated fields and enum values
 `
 
 type stringSliceFlag []string
@@ -110,7 +111,11 @@ func genType(schema *ast.Schema, t *ast.Type) jen.Code {
 	return jen.Add(prefix...).Add(gen)
 }
 
-func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
+func hasDeprecated(list ast.DirectiveList) bool {
+	return list.ForName("deprecated") != nil
+}
+
+func genDef(schema *ast.Schema, def *ast.Definition, omitDeprecated bool) *jen.Statement {
 	switch def.Kind {
 	case ast.Scalar:
 		switch def.Name {
@@ -123,6 +128,9 @@ func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
 	case ast.Enum:
 		var defs []jen.Code
 		for _, val := range def.EnumValues {
+			if omitDeprecated && hasDeprecated(val.Directives) {
+				continue
+			}
 			nameWords := strings.Split(strings.ToLower(val.Name), "_")
 			for i := range nameWords {
 				nameWords[i] = strings.Title(nameWords[i])
@@ -141,6 +149,9 @@ func genDef(schema *ast.Schema, def *ast.Definition) *jen.Statement {
 	case ast.Object, ast.Interface, ast.InputObject:
 		var fields []jen.Code
 		for _, field := range def.Fields {
+			if omitDeprecated && hasDeprecated(field.Directives) {
+				continue
+			}
 			if field.Name == "__schema" || field.Name == "__type" {
 				continue // TODO
 			}
@@ -294,10 +305,12 @@ func genOp(schema *ast.Schema, op *ast.OperationDefinition) *jen.Statement {
 func main() {
 	var schemaFilenames, queryFilenames []string
 	var pkgName, outputFilename string
+	var omitDeprecated bool
 	flag.Var((*stringSliceFlag)(&schemaFilenames), "s", "schema filename")
 	flag.Var((*stringSliceFlag)(&queryFilenames), "q", "query filename")
 	flag.StringVar(&pkgName, "n", "", "package name")
 	flag.StringVar(&outputFilename, "o", "", "output filename")
+	flag.BoolVar(&omitDeprecated, "d", false, "omit deprecated fields")
 	flag.Usage = func() {
 		fmt.Print(usage)
 	}
@@ -360,7 +373,7 @@ func main() {
 
 	for _, name := range typeNames {
 		def := schema.Types[name]
-		stmt := genDef(schema, def)
+		stmt := genDef(schema, def, omitDeprecated)
 		if stmt != nil {
 			f.Add(genDescription(def.Description), stmt).Line()
 		}
