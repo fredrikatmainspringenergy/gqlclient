@@ -116,5 +116,5 @@ Send patches on the [mailing list]. Discuss in [#emersion on Libera Chat][IRC ch
 MIT
 
 [GoDoc examples]: https://godocs.io/git.sr.ht/~emersion/gqlclient#example-Client-Execute
-[mailing list]: https://lists.sr.ht/~emersion/public-inbox
+[mailing list]: https://lists.sr.ht/~emersion/gqlclient-dev
 [IRC channel]: ircs://irc.libera.chat/#emersion
