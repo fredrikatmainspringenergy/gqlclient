@@ -320,7 +320,7 @@ func main() {
 	var header []string
 	flag.Var((*stringSliceFlag)(&header), "H", "set HTTP header")
 	flag.Usage = func() {
-		fmt.Print(usage)
+		fmt.Fprint(os.Stderr, usage)
 	}
 	flag.Parse()
 

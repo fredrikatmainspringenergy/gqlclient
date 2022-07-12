@@ -312,7 +312,7 @@ func main() {
 	flag.StringVar(&outputFilename, "o", "", "output filename")
 	flag.BoolVar(&omitDeprecated, "d", false, "omit deprecated fields")
 	flag.Usage = func() {
-		fmt.Print(usage)
+		fmt.Fprint(os.Stderr, usage)
 	}
 	flag.Parse()
 
