@@ -232,6 +232,7 @@ func collectFragments(frags map[*ast.FragmentDefinition]struct{}, selSet ast.Sel
 			collectFragments(frags, sel.SelectionSet)
 		case *ast.FragmentSpread:
 			frags[sel.Definition] = struct{}{}
+			collectFragments(frags, sel.Definition.SelectionSet)
 		case *ast.InlineFragment:
 			collectFragments(frags, sel.SelectionSet)
 		default:
