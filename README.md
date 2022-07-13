@@ -100,7 +100,7 @@ log.Print(train)
 ### GraphQL schema introspection
 
 gqlclient also supports fetching GraphQL schemas through GraphQL introspection.
-For instance, the following `glqintrospect` invocation will fetch the GraphQL
+For instance, the following `gqlintrospect` invocation will fetch the GraphQL
 schema of the `https://example.com/query` GraphQL endpoint:
 
 ```sh
