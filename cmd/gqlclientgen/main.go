@@ -79,7 +79,7 @@ func genType(schema *ast.Schema, t *ast.Type) jen.Code {
 		gen = jen.String()
 	// Convenience types
 	case "Time":
-		gen = jen.Qual("time", "Time")
+		gen = jen.Qual(gqlclient, "Time")
 	case "Map":
 		gen = jen.Map(jen.String()).Interface()
 	case "Upload":
