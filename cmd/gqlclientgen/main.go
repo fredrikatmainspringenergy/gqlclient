@@ -198,8 +198,7 @@ func genDef(schema *ast.Schema, def *ast.Definition, omitDeprecated bool) *jen.S
 			fields = append(fields, jen.Line())
 		}
 		fields = append(fields,
-			jen.Comment(strings.Join(typeNames, " | ")),
-			jen.Id("Value").Interface().Tag(map[string]string{"json": "-"}),
+			jen.Id("Value").Id(def.Name+"Value").Tag(map[string]string{"json": "-"}),
 		)
 
 		var cases []jen.Code
@@ -251,6 +250,11 @@ func genDef(schema *ast.Schema, def *ast.Definition, omitDeprecated bool) *jen.S
 				jen.Id("b"),
 				jen.Id("base").Dot("Value"),
 			)),
+		))
+		stmts = append(stmts, jen.Line())
+		stmts = append(stmts, jen.Comment(def.Name+"Value is one of: "+strings.Join(typeNames, " | ")).Line())
+		stmts = append(stmts, jen.Type().Id(def.Name+"Value").Interface(
+			jen.Id("is"+def.Name).Params(),
 		))
 		return jen.Add(stmts...)
 	default:
@@ -413,6 +417,9 @@ func main() {
 		stmt := genDef(schema, def, omitDeprecated)
 		if stmt != nil {
 			f.Add(genDescription(def.Description), stmt).Line()
+		}
+		for _, typ := range schema.GetImplements(def) {
+			f.Func().Params(genType(schema, ast.NamedType(def.Name, nil))).Id("is" + typ.Name).Params().Block().Line()
 		}
 	}
 
