@@ -198,6 +198,7 @@ func genDef(schema *ast.Schema, def *ast.Definition, omitDeprecated bool) *jen.S
 			fields = append(fields, jen.Line())
 		}
 		fields = append(fields,
+			jen.Comment("Underlying value of the GraphQL "+strings.ToLower(string(def.Kind))),
 			jen.Id("Value").Id(def.Name+"Value").Tag(map[string]string{"json": "-"}),
 		)
 
