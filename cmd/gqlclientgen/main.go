@@ -199,7 +199,7 @@ func genDef(schema *ast.Schema, def *ast.Definition, omitDeprecated bool) *jen.S
 		}
 		fields = append(fields,
 			jen.Comment(strings.Join(typeNames, " | ")),
-			jen.Id("Value").Interface(),
+			jen.Id("Value").Interface().Tag(map[string]string{"json": "-"}),
 		)
 
 		var cases []jen.Code
@@ -222,7 +222,7 @@ func genDef(schema *ast.Schema, def *ast.Definition, omitDeprecated bool) *jen.S
 		}
 		cases = append(cases,
 			jen.Default().Block(
-				jen.Return(jen.Qual("fmt", "Errorf").Call(jen.Lit(errPrefix+"unknown __typename %q"), jen.Id("data").Dot("Type"))),
+				jen.Return(jen.Qual("fmt", "Errorf").Call(jen.Lit(errPrefix+"unknown __typename %q"), jen.Id("data").Dot("TypeName"))),
 			),
 		)
 
@@ -237,14 +237,16 @@ func genDef(schema *ast.Schema, def *ast.Definition, omitDeprecated bool) *jen.S
 			jen.Id("error"),
 		).Block(
 			jen.Var().Id("data").Struct(
-				jen.Id("Type").String().Tag(map[string]string{"json": "__typename"}),
+				jen.Op("*").Id(def.Name),
+				jen.Id("TypeName").String().Tag(map[string]string{"json": "__typename"}),
 			),
+			jen.Id("data").Dot(def.Name).Op("=").Id("base"),
 			jen.Id("err").Op(":=").Qual("encoding/json", "Unmarshal").Call(
 				jen.Id("b"),
 				jen.Op("&").Id("data"),
 			),
 			jen.If(jen.Id("err").Op("!=").Nil()).Block(jen.Return(jen.Id("err"))),
-			jen.Switch(jen.Id("data").Dot("Type")).Block(cases...),
+			jen.Switch(jen.Id("data").Dot("TypeName")).Block(cases...),
 			jen.Return(jen.Qual("encoding/json", "Unmarshal").Call(
 				jen.Id("b"),
 				jen.Id("base").Dot("Value"),
