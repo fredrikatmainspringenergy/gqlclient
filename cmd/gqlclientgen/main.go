@@ -146,7 +146,7 @@ func genDef(schema *ast.Schema, def *ast.Definition, omitDeprecated bool) *jen.S
 			jen.Line(),
 			jen.Const().Defs(defs...),
 		)
-	case ast.Object, ast.Interface, ast.InputObject:
+	case ast.Object, ast.InputObject:
 		var fields []jen.Code
 		for _, field := range def.Fields {
 			if omitDeprecated && hasDeprecated(field.Directives) {
@@ -167,35 +167,70 @@ func genDef(schema *ast.Schema, def *ast.Definition, omitDeprecated bool) *jen.S
 			)
 		}
 		return jen.Type().Id(def.Name).Struct(fields...)
-	case ast.Union:
-		var stmts []jen.Code
-		stmts = append(stmts,
-			jen.Type().Id(def.Name).Struct(
-				jen.Comment(strings.Join(def.Types, " | ")),
-				jen.Id("Value").Interface(),
-			),
-			jen.Line(),
+	case ast.Interface, ast.Union:
+		possibleTypes := schema.GetPossibleTypes(def)
+
+		var typeNames []string
+		for _, typ := range possibleTypes {
+			typeNames = append(typeNames, typ.Name)
+		}
+
+		var fields []jen.Code
+		for _, field := range def.Fields {
+			if omitDeprecated && hasDeprecated(field.Directives) {
+				continue
+			}
+			if field.Name == "__schema" || field.Name == "__type" {
+				continue // TODO
+			}
+			name := strings.Title(field.Name)
+			jsonTag := field.Name
+			if !field.Type.NonNull {
+				jsonTag += ",omitempty"
+			}
+			tag := jen.Tag(map[string]string{"json": jsonTag})
+			desc := genDescription(field.Description)
+			fields = append(fields,
+				jen.Add(desc).Id(name).Add(genType(schema, field.Type)).Add(tag),
+			)
+		}
+		if len(fields) > 0 {
+			fields = append(fields, jen.Line())
+		}
+		fields = append(fields,
+			jen.Comment(strings.Join(typeNames, " | ")),
+			jen.Id("Value").Interface(),
 		)
 
 		var cases []jen.Code
-		for _, name := range def.Types {
-			cases = append(cases, jen.Case(jen.Lit(name)).Block(
-				jen.Id("union").Dot("Value").Op("=").New(jen.Id(name)),
+		for _, typ := range possibleTypes {
+			cases = append(cases, jen.Case(jen.Lit(typ.Name)).Block(
+				jen.Id("base").Dot("Value").Op("=").New(jen.Id(typ.Name)),
 			))
 		}
 
-		errPrefix := fmt.Sprintf("gqlclient: union %v: ", def.Name)
-		cases = append(cases,
-			jen.Case(jen.Lit("")).Block(
+		errPrefix := fmt.Sprintf("gqlclient: %v %v: ", strings.ToLower(string(def.Kind)), def.Name)
+		switch def.Kind {
+		case ast.Interface:
+			cases = append(cases, jen.Case(jen.Lit("")).Block(
+				jen.Return(jen.Nil()),
+			))
+		case ast.Union:
+			cases = append(cases, jen.Case(jen.Lit("")).Block(
 				jen.Return(jen.Qual("fmt", "Errorf").Call(jen.Lit(errPrefix+"missing __typename field"))),
-			),
+			))
+		}
+		cases = append(cases,
 			jen.Default().Block(
 				jen.Return(jen.Qual("fmt", "Errorf").Call(jen.Lit(errPrefix+"unknown __typename %q"), jen.Id("data").Dot("Type"))),
 			),
 		)
 
+		var stmts []jen.Code
+		stmts = append(stmts, jen.Type().Id(def.Name).Struct(fields...))
+		stmts = append(stmts, jen.Line())
 		stmts = append(stmts, jen.Func().Params(
-			jen.Id("union").Op("*").Id(def.Name),
+			jen.Id("base").Op("*").Id(def.Name),
 		).Id("UnmarshalJSON").Params(
 			jen.Id("b").Index().Byte(),
 		).Params(
@@ -212,10 +247,9 @@ func genDef(schema *ast.Schema, def *ast.Definition, omitDeprecated bool) *jen.S
 			jen.Switch(jen.Id("data").Dot("Type")).Block(cases...),
 			jen.Return(jen.Qual("encoding/json", "Unmarshal").Call(
 				jen.Id("b"),
-				jen.Id("union").Dot("Value"),
+				jen.Id("base").Dot("Value"),
 			)),
 		))
-
 		return jen.Add(stmts...)
 	default:
 		panic(fmt.Sprintf("unsupported definition kind: %s", def.Kind))
