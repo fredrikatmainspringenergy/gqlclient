@@ -236,11 +236,12 @@ func genDef(schema *ast.Schema, def *ast.Definition, omitDeprecated bool) *jen.S
 		).Params(
 			jen.Id("error"),
 		).Block(
+			jen.Type().Id("Raw").Id(def.Name),
 			jen.Var().Id("data").Struct(
-				jen.Op("*").Id(def.Name),
+				jen.Op("*").Id("Raw"),
 				jen.Id("TypeName").String().Tag(map[string]string{"json": "__typename"}),
 			),
-			jen.Id("data").Dot(def.Name).Op("=").Id("base"),
+			jen.Id("data").Dot("Raw").Op("=").Parens(jen.Op("*").Id("Raw")).Parens(jen.Id("base")),
 			jen.Id("err").Op(":=").Qual("encoding/json", "Unmarshal").Call(
 				jen.Id("b"),
 				jen.Op("&").Id("data"),
