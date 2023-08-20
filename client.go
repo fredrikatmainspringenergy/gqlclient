@@ -149,8 +149,7 @@ func (c *Client) Execute(ctx context.Context, op *Operation, data interface{}) e
 	}
 
 	if len(respData.Errors) > 0 {
-		// TODO: use errors.Join
-		err = &respData.Errors[0]
+		err = joinErrors(respData.Errors)
 	}
 	if resp.StatusCode/100 != 2 {
 		err = &HTTPError{
