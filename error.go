@@ -22,3 +22,22 @@ type Error struct {
 func (err *Error) Error() string {
 	return "gqlclient: server failure: " + err.Message
 }
+
+// HTTPError is an HTTP response error.
+type HTTPError struct {
+	StatusCode int
+	statusText string
+	err        error
+}
+
+func (err *HTTPError) Error() string {
+	s := "gqlclient: HTTP server error (" + err.statusText + ")"
+	if err.err != nil {
+		s += ": " + err.err.Error()
+	}
+	return s
+}
+
+func (err *HTTPError) Unwrap() error {
+	return err.err
+}

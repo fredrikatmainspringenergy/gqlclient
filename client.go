@@ -131,7 +131,10 @@ func (c *Client) Execute(ctx context.Context, op *Operation, data interface{}) e
 		return fmt.Errorf("invalid Content-Type %q: %v", contentType, err)
 	} else if mediaType != "application/json" {
 		if resp.StatusCode/100 != 2 {
-			return fmt.Errorf("HTTP server error: %v %v", resp.StatusCode, resp.Status)
+			return &HTTPError{
+				StatusCode: resp.StatusCode,
+				statusText: resp.Status,
+			}
 		}
 		return fmt.Errorf("invalid Content-Type %q: expected application/json", contentType)
 	}
@@ -146,7 +149,15 @@ func (c *Client) Execute(ctx context.Context, op *Operation, data interface{}) e
 	}
 
 	if len(respData.Errors) > 0 {
-		return &respData.Errors[0]
+		// TODO: use errors.Join
+		err = &respData.Errors[0]
 	}
-	return nil
+	if resp.StatusCode/100 != 2 {
+		err = &HTTPError{
+			StatusCode: resp.StatusCode,
+			statusText: resp.Status,
+			err:        err,
+		}
+	}
+	return err
 }
