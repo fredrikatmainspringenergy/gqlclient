@@ -1,3 +1,5 @@
+Cloned from https://git.sr.ht/~emersion/gqlclient
+
 # gqlclient
 
 [![godocs.io](https://godocs.io/git.sr.ht/~emersion/gqlclient?status.svg)](https://godocs.io/git.sr.ht/~emersion/gqlclient)
